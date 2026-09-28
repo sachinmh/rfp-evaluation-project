@@ -1,0 +1,7 @@
+streamlit>=1.38
+pypdf>=4.2
+pydantic>=2.7
+reportlab>=4.2
+anthropic>=0.34
+openai>=1.40
+pandas>=2.2
