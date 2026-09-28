@@ -52,10 +52,37 @@ class OpenAIClient(LLMClient):
         return response.choices[0].message.content
 
 
+class OpenRouterClient(LLMClient):
+    """OpenRouter exposes an OpenAI-compatible API, so we reuse the openai SDK with a
+    different base_url. Model names use OpenRouter's "<provider>/<model>" convention,
+    e.g. "anthropic/claude-sonnet-5", "openai/gpt-4o-mini", "meta-llama/llama-3.1-70b-instruct".
+    We don't force response_format here since not every model routed through OpenRouter
+    supports strict JSON mode — validation.py already tolerates non-strict JSON output.
+    """
+
+    def __init__(self, api_key: str, model: str = "openai/gpt-4o-mini"):
+        from openai import OpenAI
+
+        self._client = OpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1")
+        self._model = model
+
+    def generate_json(self, system_prompt: str, user_prompt: str) -> str:
+        response = self._client.chat.completions.create(
+            model=self._model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+        )
+        return response.choices[0].message.content
+
+
 def get_llm_client(provider: str, api_key: str, model: str | None = None) -> LLMClient:
     provider = provider.lower().strip()
     if provider == "anthropic":
         return AnthropicClient(api_key=api_key, model=model or "claude-sonnet-5")
     if provider == "openai":
         return OpenAIClient(api_key=api_key, model=model or "gpt-4o-mini")
-    raise ValueError(f"Unsupported LLM provider: {provider!r}. Use 'anthropic' or 'openai'.")
+    if provider == "openrouter":
+        return OpenRouterClient(api_key=api_key, model=model or "openai/gpt-4o-mini")
+    raise ValueError(f"Unsupported LLM provider: {provider!r}. Use 'anthropic', 'openai', or 'openrouter'.")

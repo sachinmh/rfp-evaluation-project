@@ -32,7 +32,7 @@ SQLite (db/schema.sql via src/database.py)
 | Orchestrator Agent | `src/orchestrator.py` | Runs the pipeline in the required order for one batch |
 | Document Tool | `src/pdf_tool.py` | Extracts clean text from each uploaded PDF (`pypdf`) |
 | Evaluation Agent | `src/evaluator.py` | Builds the evidence-grounded prompt; calls the LLM per supplier |
-| LLM Client | `src/llm_client.py` | Provider-agnostic wrapper — Anthropic **or** OpenAI, selectable in the sidebar |
+| LLM Client | `src/llm_client.py` | Provider-agnostic wrapper — Anthropic, OpenAI, **or OpenRouter**, selectable in the sidebar |
 | Validation Tool | `src/validation.py` | Parses/validates LLM JSON with Pydantic; fills missing criteria, clips out-of-range scores, records warnings |
 | Ranking Tool | `src/ranking.py` | Pure deterministic Python: weighted score, benchmark, gap, relative %, PPI, tie-break sort, rank |
 | Database layer | `src/database.py`, `db/init_db.py`, `db/schema.sql` | SQLite persistence |
@@ -98,14 +98,24 @@ python db/init_db.py                    # creates + seeds db/rfp_evaluation.db
 python scripts/generate_sample_pdfs.py  # regenerates the 4 sample supplier PDFs (already included)
 
 cp .streamlit/secrets.toml.example .streamlit/secrets.toml
-# edit .streamlit/secrets.toml and paste your ANTHROPIC_API_KEY and/or OPENAI_API_KEY
+# edit .streamlit/secrets.toml and paste whichever key(s) you'll use:
+# ANTHROPIC_API_KEY, OPENAI_API_KEY, and/or OPENROUTER_API_KEY
 
 streamlit run app.py
 ```
 
-In the app sidebar, pick **anthropic** or **openai**, confirm/override the API key and model,
-then go to **Supplier Input**, upload the 4 PDFs from `data/sample_pdfs/`, fill in each
-supplier's name / submission date / experience rating, and click **Evaluate Batch**.
+In the app sidebar, pick **anthropic**, **openai**, or **openrouter**, confirm/override the
+API key and model, then go to **Supplier Input**, upload the 4 PDFs from
+`data/sample_pdfs/`, fill in each supplier's name / submission date / experience rating,
+and click **Evaluate Batch**.
+
+**Using OpenRouter:** OpenRouter exposes an OpenAI-compatible API, so `src/llm_client.py`
+talks to it via the `openai` SDK pointed at `https://openrouter.ai/api/v1`. Get a key from
+[openrouter.ai/keys](https://openrouter.ai/keys), select **openrouter** in the sidebar, and
+set the model field to an OpenRouter model slug, e.g. `anthropic/claude-sonnet-5`,
+`openai/gpt-4o-mini`, or `meta-llama/llama-3.1-70b-instruct`. Strict JSON mode isn't forced
+for this provider since not every model routed through OpenRouter supports it — the
+Validation Tool already tolerates loosely-formatted JSON (stripped code fences, etc.).
 
 ## 7. Testing / reproducibility
 

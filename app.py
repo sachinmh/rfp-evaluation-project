@@ -36,16 +36,30 @@ def secret_or_env(key: str) -> str:
 # Sidebar: LLM provider configuration
 # --------------------------------------------------------------------------------------
 st.sidebar.title("LLM configuration")
-provider = st.sidebar.selectbox("Provider", ["anthropic", "openai"], index=0)
-default_key = secret_or_env("ANTHROPIC_API_KEY" if provider == "anthropic" else "OPENAI_API_KEY")
+provider = st.sidebar.selectbox("Provider", ["anthropic", "openai", "openrouter"], index=0)
+SECRET_KEY_NAMES = {
+    "anthropic": "ANTHROPIC_API_KEY",
+    "openai": "OPENAI_API_KEY",
+    "openrouter": "OPENROUTER_API_KEY",
+}
+MODEL_DEFAULTS = {
+    "anthropic": "claude-sonnet-5",
+    "openai": "gpt-4o-mini",
+    "openrouter": "openai/gpt-4o-mini",
+}
+default_key = secret_or_env(SECRET_KEY_NAMES[provider])
 api_key = st.sidebar.text_input(
     f"{provider.capitalize()} API key",
     value=default_key,
     type="password",
     help="Reads from Streamlit secrets / environment first; you can override here for this session.",
 )
-model_default = "claude-sonnet-5" if provider == "anthropic" else "gpt-4o-mini"
-model = st.sidebar.text_input("Model", value=model_default)
+model = st.sidebar.text_input("Model", value=MODEL_DEFAULTS[provider])
+if provider == "openrouter":
+    st.sidebar.caption(
+        "OpenRouter model names use the 'provider/model' format, e.g. "
+        "`anthropic/claude-sonnet-5`, `openai/gpt-4o-mini`, `meta-llama/llama-3.1-70b-instruct`."
+    )
 
 st.sidebar.markdown("---")
 st.sidebar.caption(
