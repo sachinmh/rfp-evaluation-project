@@ -160,9 +160,11 @@ with tab_input:
                         for sf in supplier_forms
                     ]
                     conn = get_conn()
-                    active_criteria = db.get_active_criteria(conn)
-                    result = run_batch_evaluation(conn, llm_client, active_criteria, supplier_inputs)
-                    conn.close()
+                    try:
+                        active_criteria = db.get_active_criteria(conn)
+                        result = run_batch_evaluation(conn, llm_client, active_criteria, supplier_inputs)
+                    finally:
+                        conn.close()
                     st.session_state["last_run"] = result
                     st.success(f"Batch evaluation complete. RFP_RUN_ID: {result['rfp_run_id']}")
                 except Exception as exc:
@@ -177,7 +179,13 @@ conn = get_conn()
 past_runs = db.list_runs(conn)
 conn.close()
 
-run_options = [r["rfp_run_id"] for r in past_runs]
+run_options = [r["rfp_run_id"] for r in past_runs if r["status"] == "completed"]
+incomplete_runs = [r for r in past_runs if r["status"] != "completed"]
+if incomplete_runs:
+    st.sidebar.caption(
+        f"{len(incomplete_runs)} run(s) did not complete (status: "
+        f"{', '.join(sorted({r['status'] for r in incomplete_runs}))}) and are hidden from this list."
+    )
 default_run_id = st.session_state.get("last_run", {}).get("rfp_run_id")
 
 
@@ -207,21 +215,24 @@ with tab_leaderboard:
         st.info("Run a batch evaluation first, or select a past run from the sidebar.")
     else:
         suppliers, warnings = load_run(selected_run_id)
-        board_df = pd.DataFrame(
-            [
-                {
-                    "Rank": s["final_rank"],
-                    "Supplier": s["supplier_name"],
-                    "Absolute Score": round(s["absolute_score"], 2),
-                    "PPI": round(s["ppi"], 2),
-                    "Submission Date": s["submission_date"],
-                    "Experience Rating": s["experience_rating"],
-                }
-                for s in suppliers
-            ]
-        )
-        st.dataframe(board_df, use_container_width=True, hide_index=True)
-        st.bar_chart(board_df.set_index("Supplier")[["Absolute Score", "PPI"]])
+        if not suppliers:
+            st.warning("This run has no supplier results to display.")
+        else:
+            board_df = pd.DataFrame(
+                [
+                    {
+                        "Rank": s["final_rank"],
+                        "Supplier": s["supplier_name"],
+                        "Absolute Score": round(s["absolute_score"], 2),
+                        "PPI": round(s["ppi"], 2),
+                        "Submission Date": s["submission_date"],
+                        "Experience Rating": s["experience_rating"],
+                    }
+                    for s in suppliers
+                ]
+            )
+            st.dataframe(board_df, use_container_width=True, hide_index=True)
+            st.bar_chart(board_df.set_index("Supplier")[["Absolute Score", "PPI"]])
 
 # --------------------------------------------------------------------------------------
 # Screen: Detailed Scorecard
@@ -232,37 +243,40 @@ with tab_scorecard:
         st.info("Run a batch evaluation first, or select a past run from the sidebar.")
     else:
         suppliers, warnings = load_run(selected_run_id)
-        supplier_names = [s["supplier_name"] for s in suppliers]
-        chosen = st.selectbox("Supplier", supplier_names)
-        supplier = next(s for s in suppliers if s["supplier_name"] == chosen)
+        if not suppliers:
+            st.warning("This run has no supplier results to display.")
+        else:
+            supplier_names = [s["supplier_name"] for s in suppliers]
+            chosen = st.selectbox("Supplier", supplier_names)
+            supplier = next(s for s in suppliers if s["supplier_name"] == chosen)
 
-        st.metric("Absolute Score", round(supplier["absolute_score"], 2))
-        st.metric("PPI", round(supplier["ppi"], 2))
-        st.metric("Final Rank", supplier["final_rank"])
+            st.metric("Absolute Score", round(supplier["absolute_score"], 2))
+            st.metric("PPI", round(supplier["ppi"], 2))
+            st.metric("Final Rank", supplier["final_rank"])
 
-        crit_df = pd.DataFrame(
-            [
-                {
-                    "Criterion": c["criterion_name"],
-                    "Weight (%)": c["weight"],
-                    "Score": f"{c['raw_score']}/{c['max_score']}",
-                    "Weighted Contribution": round(c["weighted_contribution"], 2),
-                    "Benchmark": c["benchmark_score"],
-                    "Gap": c["gap"],
-                    "Relative %": c["relative_pct"],
-                }
-                for c in supplier["criteria"]
-            ]
-        )
-        st.dataframe(crit_df, use_container_width=True, hide_index=True)
+            crit_df = pd.DataFrame(
+                [
+                    {
+                        "Criterion": c["criterion_name"],
+                        "Weight (%)": c["weight"],
+                        "Score": f"{c['raw_score']}/{c['max_score']}",
+                        "Weighted Contribution": round(c["weighted_contribution"], 2),
+                        "Benchmark": c["benchmark_score"],
+                        "Gap": c["gap"],
+                        "Relative %": c["relative_pct"],
+                    }
+                    for c in supplier["criteria"]
+                ]
+            )
+            st.dataframe(crit_df, use_container_width=True, hide_index=True)
 
-        st.subheader("Evidence & Justification")
-        for c in supplier["criteria"]:
-            with st.expander(f"{c['criterion_name']} — score {c['raw_score']}/{c['max_score']}"):
-                st.write(f"**Justification:** {c.get('justification', '')}")
-                st.write(f"**Evidence:** {c.get('evidence', '')}")
-                if c.get("was_normalized"):
-                    st.warning(f"Normalized by the Validation Tool: {c.get('normalization_note')}")
+            st.subheader("Evidence & Justification")
+            for c in supplier["criteria"]:
+                with st.expander(f"{c['criterion_name']} — score {c['raw_score']}/{c['max_score']}"):
+                    st.write(f"**Justification:** {c.get('justification', '')}")
+                    st.write(f"**Evidence:** {c.get('evidence', '')}")
+                    if c.get("was_normalized"):
+                        st.warning(f"Normalized by the Validation Tool: {c.get('normalization_note')}")
 
 # --------------------------------------------------------------------------------------
 # Screen: Run Details

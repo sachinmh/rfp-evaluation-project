@@ -49,6 +49,22 @@ def run_batch_evaluation(
     rfp_run_id = str(uuid.uuid4())
     db.create_run(conn, rfp_run_id)
 
+    try:
+        return _run_batch_evaluation_inner(conn, llm_client, active_criteria, supplier_inputs, rfp_run_id)
+    except Exception:
+        # Leave no dangling 'pending' run behind — mark it failed so it's excluded from
+        # the run selector instead of showing up as a leaderboard with zero suppliers.
+        db.set_run_status(conn, rfp_run_id, "failed")
+        raise
+
+
+def _run_batch_evaluation_inner(
+    conn,
+    llm_client: LLMClient,
+    active_criteria: list[dict[str, Any]],
+    supplier_inputs: list[SupplierInput],
+    rfp_run_id: str,
+) -> dict[str, Any]:
     all_warnings: list[dict[str, str]] = []
     per_supplier_criteria: dict[str, list[dict[str, Any]]] = {}
     supplier_meta: dict[str, dict[str, Any]] = {}
