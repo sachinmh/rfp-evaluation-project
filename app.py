@@ -45,7 +45,7 @@ SECRET_KEY_NAMES = {
 MODEL_DEFAULTS = {
     "anthropic": "claude-sonnet-5",
     "openai": "gpt-4o-mini",
-    "openrouter": "openai/gpt-4o-mini",
+    "openrouter": "google/gemma-4-26b-a4b-it:free",
 }
 default_key = secret_or_env(SECRET_KEY_NAMES[provider])
 api_key = st.sidebar.text_input(

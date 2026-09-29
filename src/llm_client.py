@@ -60,7 +60,7 @@ class OpenRouterClient(LLMClient):
     supports strict JSON mode — validation.py already tolerates non-strict JSON output.
     """
 
-    def __init__(self, api_key: str, model: str = "openai/gpt-4o-mini"):
+    def __init__(self, api_key: str, model: str = "google/gemma-4-26b-a4b-it:free"):
         from openai import OpenAI
 
         self._client = OpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1")
