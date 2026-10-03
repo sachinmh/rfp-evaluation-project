@@ -4,8 +4,8 @@ Orchestrator Agent: controls the workflow and calls each tool in the required or
 Setup -> Input (handled by Streamlit) -> Batch -> Evaluate -> Validate -> Score ->
 Benchmark -> Rank -> Persist -> Present (handled by Streamlit).
 
-The LLM is only ever asked to judge proposal content (src/evaluator.py). Every arithmetic,
-benchmarking, tie-break, and ranking decision happens in src/ranking.py, which never calls
+The LLM is only ever asked to judge proposal content (core/evaluator.py). Every arithmetic,
+benchmarking, tie-break, and ranking decision happens in core/ranking.py, which never calls
 the LLM.
 """
 from __future__ import annotations
@@ -13,11 +13,11 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-from src import database as db
-from src.evaluator import evaluate_supplier
-from src.llm_client import LLMClient
-from src.pdf_tool import extract_text
-from src.ranking import (
+from core import database as db
+from core.evaluator import evaluate_supplier
+from core.llm_client import LLMClient
+from core.pdf_tool import extract_text
+from core.ranking import (
     apply_benchmarks,
     compute_absolute_score,
     compute_benchmarks,
@@ -25,7 +25,7 @@ from src.ranking import (
     compute_weighted_contributions,
     rank_suppliers,
 )
-from src.validation import normalize_llm_output
+from core.validation import normalize_llm_output
 
 
 class SupplierInput:

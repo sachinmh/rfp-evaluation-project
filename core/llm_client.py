@@ -63,7 +63,7 @@ class OpenRouterClient(LLMClient):
     def __init__(self, api_key: str, model: str = "google/gemma-4-26b-a4b-it:free"):
         from openai import OpenAI
 
-        self._client = OpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1")
+        self._client = OpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1", max_retries=6)
         self._model = model
 
     def generate_json(self, system_prompt: str, user_prompt: str) -> str:
@@ -84,5 +84,5 @@ def get_llm_client(provider: str, api_key: str, model: str | None = None) -> LLM
     if provider == "openai":
         return OpenAIClient(api_key=api_key, model=model or "gpt-4o-mini")
     if provider == "openrouter":
-        return OpenRouterClient(api_key=api_key, model=model or "openai/gpt-4o-mini")
+        return OpenRouterClient(api_key=api_key, model=model or "google/gemma-4-26b-a4b-it:free")
     raise ValueError(f"Unsupported LLM provider: {provider!r}. Use 'anthropic', 'openai', or 'openrouter'.")

@@ -2,12 +2,10 @@
 import json
 import os
 import sqlite3
-import sys
 from datetime import datetime, timezone
 from typing import Any
 
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from db.init_db import DB_PATH, get_connection, init_db  # noqa: E402
+from db.init_db import DB_PATH, get_connection, init_db
 
 
 def ensure_db_ready(db_path: str = DB_PATH) -> None:

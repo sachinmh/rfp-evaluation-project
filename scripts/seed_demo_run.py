@@ -14,8 +14,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from db.init_db import DB_PATH, init_db  # noqa: E402
 from scripts.smoke_test import FakeLLMClient, SAMPLE_DIR  # noqa: E402
-from src import database as db  # noqa: E402
-from src.orchestrator import SupplierInput, run_batch_evaluation  # noqa: E402
+from core import database as db  # noqa: E402
+from core.orchestrator import SupplierInput, run_batch_evaluation  # noqa: E402
 
 
 def main():

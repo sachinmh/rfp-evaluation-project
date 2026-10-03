@@ -9,10 +9,10 @@ import os
 import pandas as pd
 import streamlit as st
 
-from src import database as db
-from src.llm_client import get_llm_client
-from src.orchestrator import SupplierInput, run_batch_evaluation
-from src.ranking import tie_break_explanation
+from core import database as db
+from core.llm_client import get_llm_client
+from core.orchestrator import SupplierInput, run_batch_evaluation
+from core.ranking import tie_break_explanation
 
 st.set_page_config(page_title="Agentic RFP Evaluation", layout="wide")
 
@@ -54,7 +54,8 @@ api_key = st.sidebar.text_input(
     type="password",
     help="Reads from Streamlit secrets / environment first; you can override here for this session.",
 )
-model = st.sidebar.text_input("Model", value=MODEL_DEFAULTS[provider])
+api_key = api_key.strip()
+model = st.sidebar.text_input("Model", value=MODEL_DEFAULTS[provider]).strip()
 if provider == "openrouter":
     st.sidebar.caption(
         "OpenRouter model names use the 'provider/model' format, e.g. "
@@ -87,7 +88,7 @@ with tab_criteria:
     else:
         df = pd.DataFrame(criteria)[["criterion_id", "name", "description", "weight", "max_score"]]
         df = df.rename(columns={"weight": "weight (%)"})
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        st.dataframe(df, width='stretch', hide_index=True)
         total_weight = sum(c["weight"] for c in criteria)
         if abs(total_weight - 100) > 0.01:
             st.error(f"Active criteria weights sum to {total_weight}%, not 100%. Fix this in evaluation_criteria before running a batch.")
@@ -231,7 +232,7 @@ with tab_leaderboard:
                     for s in suppliers
                 ]
             )
-            st.dataframe(board_df, use_container_width=True, hide_index=True)
+            st.dataframe(board_df, width='stretch', hide_index=True)
             st.bar_chart(board_df.set_index("Supplier")[["Absolute Score", "PPI"]])
 
 # --------------------------------------------------------------------------------------
@@ -268,7 +269,7 @@ with tab_scorecard:
                     for c in supplier["criteria"]
                 ]
             )
-            st.dataframe(crit_df, use_container_width=True, hide_index=True)
+            st.dataframe(crit_df, width='stretch', hide_index=True)
 
             st.subheader("Evidence & Justification")
             for c in supplier["criteria"]:

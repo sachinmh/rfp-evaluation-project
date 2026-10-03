@@ -13,8 +13,8 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from db.init_db import init_db  # noqa: E402
-from src import database as db  # noqa: E402
-from src.orchestrator import SupplierInput, run_batch_evaluation  # noqa: E402
+from core import database as db  # noqa: E402
+from core.orchestrator import SupplierInput, run_batch_evaluation  # noqa: E402
 
 SAMPLE_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "sample_pdfs")
 

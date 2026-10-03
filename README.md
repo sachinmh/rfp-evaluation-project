@@ -6,7 +6,7 @@ rank, and tie-break suppliers into an explainable leaderboard.
 
 > **Design principle:** the LLM only judges proposal *content* (per-criterion score +
 > justification + evidence). It never computes weighted totals, benchmarks, tie-breaks,
-> or final rank — that logic lives entirely in `src/ranking.py` and is provider-independent,
+> or final rank — that logic lives entirely in `core/ranking.py` and is provider-independent,
 > so the same inputs always produce the same leaderboard.
 
 ## 1. Architecture
@@ -15,27 +15,27 @@ rank, and tie-break suppliers into an explainable leaderboard.
 Streamlit UI (app.py)
    │
    ▼
-Orchestrator Agent (src/orchestrator.py)
+Orchestrator Agent (core/orchestrator.py)
    │
-   ├─► Document Tool (src/pdf_tool.py)        — pypdf text extraction
-   ├─► Evaluation Agent (src/evaluator.py)     — builds grounded prompt
-   │        └─► LLM Client (src/llm_client.py) — Anthropic or OpenAI, JSON output
-   ├─► Validation Tool (src/validation.py)     — Pydantic schema check + normalization
-   └─► Ranking Tool (src/ranking.py)           — scoring, benchmarks, PPI, tie-break, rank
+   ├─► Document Tool (core/pdf_tool.py)        — pypdf text extraction
+   ├─► Evaluation Agent (core/evaluator.py)     — builds grounded prompt
+   │        └─► LLM Client (core/llm_client.py) — Anthropic or OpenAI, JSON output
+   ├─► Validation Tool (core/validation.py)     — Pydantic schema check + normalization
+   └─► Ranking Tool (core/ranking.py)           — scoring, benchmarks, PPI, tie-break, rank
    │
    ▼
-SQLite (db/schema.sql via src/database.py)
+SQLite (db/schema.sql via core/database.py)
 ```
 
 | Component | File | Responsibility |
 |---|---|---|
-| Orchestrator Agent | `src/orchestrator.py` | Runs the pipeline in the required order for one batch |
-| Document Tool | `src/pdf_tool.py` | Extracts clean text from each uploaded PDF (`pypdf`) |
-| Evaluation Agent | `src/evaluator.py` | Builds the evidence-grounded prompt; calls the LLM per supplier |
-| LLM Client | `src/llm_client.py` | Provider-agnostic wrapper — Anthropic, OpenAI, **or OpenRouter**, selectable in the sidebar |
-| Validation Tool | `src/validation.py` | Parses/validates LLM JSON with Pydantic; fills missing criteria, clips out-of-range scores, records warnings |
-| Ranking Tool | `src/ranking.py` | Pure deterministic Python: weighted score, benchmark, gap, relative %, PPI, tie-break sort, rank |
-| Database layer | `src/database.py`, `db/init_db.py`, `db/schema.sql` | SQLite persistence |
+| Orchestrator Agent | `core/orchestrator.py` | Runs the pipeline in the required order for one batch |
+| Document Tool | `core/pdf_tool.py` | Extracts clean text from each uploaded PDF (`pypdf`) |
+| Evaluation Agent | `core/evaluator.py` | Builds the evidence-grounded prompt; calls the LLM per supplier |
+| LLM Client | `core/llm_client.py` | Provider-agnostic wrapper — Anthropic, OpenAI, **or OpenRouter**, selectable in the sidebar |
+| Validation Tool | `core/validation.py` | Parses/validates LLM JSON with Pydantic; fills missing criteria, clips out-of-range scores, records warnings |
+| Ranking Tool | `core/ranking.py` | Pure deterministic Python: weighted score, benchmark, gap, relative %, PPI, tie-break sort, rank |
+| Database layer | `core/database.py`, `db/init_db.py`, `db/schema.sql` | SQLite persistence |
 
 ## 2. Data flow
 
@@ -56,9 +56,9 @@ Setup → Input → Batch → Evaluate → Validate → Score → Benchmark → 
 **Assumption — benchmark of 0:** if every supplier scores 0 on a criterion, the benchmark is
 0 and a literal division would be undefined. We treat that case as *all suppliers tied at
 100% relative performance* on that criterion, since 0 is also the maximum observed — this is
-implemented explicitly in `src/ranking.py:apply_benchmarks`.
+implemented explicitly in `core/ranking.py:apply_benchmarks`.
 
-### Mandatory tie-break order (`src/ranking.py:rank_suppliers`)
+### Mandatory tie-break order (`core/ranking.py:rank_suppliers`)
 1. Higher PPI first
 2. Earlier submission date
 3. Higher historical experience rating
@@ -69,7 +69,7 @@ correctly through all four keys at once.
 
 ## 4. Validation & normalization rules
 
-Implemented in `src/validation.py`, applied before any scoring happens:
+Implemented in `core/validation.py`, applied before any scoring happens:
 - Strips markdown code fences if the model wraps JSON despite instructions.
 - Unparsable JSON → every criterion for that supplier defaults to score 0, with a warning.
 - Criterion missing from the LLM response → defaulted to score 0, with a warning.
@@ -109,7 +109,7 @@ API key and model, then go to **Supplier Input**, upload the 4 PDFs from
 `data/sample_pdfs/`, fill in each supplier's name / submission date / experience rating,
 and click **Evaluate Batch**.
 
-**Using OpenRouter:** OpenRouter exposes an OpenAI-compatible API, so `src/llm_client.py`
+**Using OpenRouter:** OpenRouter exposes an OpenAI-compatible API, so `core/llm_client.py`
 talks to it via the `openai` SDK pointed at `https://openrouter.ai/api/v1`. Get a key from
 [openrouter.ai/keys](https://openrouter.ai/keys), select **openrouter** in the sidebar, and
 set the model field to an OpenRouter model slug, e.g. `anthropic/claude-sonnet-5`,
@@ -164,7 +164,7 @@ rfp_evaluation_project/
 │   ├── schema.sql
 │   ├── init_db.py                # creation + seed script
 │   └── rfp_evaluation.db         # generated, gitignored
-├── src/
+├── core/
 │   ├── database.py
 │   ├── pdf_tool.py                # Document Tool
 │   ├── llm_client.py               # provider-agnostic LLM wrapper

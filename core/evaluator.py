@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.llm_client import LLMClient
+from core.llm_client import LLMClient
 
 SYSTEM_PROMPT = """You are a procurement evaluation assistant. You score ONE supplier's RFP \
 response against a fixed list of evaluation criteria.
